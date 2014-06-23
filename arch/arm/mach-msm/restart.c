@@ -35,6 +35,26 @@
 #include "msm_watchdog.h"
 #include "timer.h"
 
+#include <mach/subsystem_restart.h>
+extern long system_flag;
+#ifdef CONFIG_CCI_KLOG
+long* powerpt = (long*)POWER_OFF_SPECIAL_ADDR;
+long* unknowflag = (long*)UNKONW_CRASH_SPECIAL_ADDR;
+long* backupcrashflag = (long*)CRASH_SPECIAL_ADDR;
+#endif
+#define ABNORAML_NONE		0x0
+#define ABNORAML_REBOOT		0x1
+#define ABNORAML_CRASH		0x2
+#define ABNORAML_POWEROFF	0x3
+
+static long abnormalflag = ABNORAML_NONE;
+
+
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+#include <asm/kexec.h>
+#endif
+
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
 #define WDT0_BARK_TIME	0x4C
@@ -322,6 +342,14 @@ static int __init msm_pmic_restart_init(void)
 
 late_initcall(msm_pmic_restart_init);
 
+#ifdef CONFIG_KEXEC_HARDBOOT
+static void msm_kexec_hardboot_hook(void)
+{
+	// Set PMIC to restart-on-poweroff
+	pm8xxx_reset_pwr_off(1);
+}
+#endif
+
 static int __init msm_restart_init(void)
 {
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -337,6 +365,16 @@ static int __init msm_restart_init(void)
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
 	pm_power_off = msm_power_off;
 
+	set_warmboot();
+#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+	__raw_writel(CONFIG_WARMBOOT_CRASH, restart_reason);
+#else	
+	__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
+#endif	
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+	kexec_hardboot_hook = msm_kexec_hardboot_hook;
+#endif
 	return 0;
 }
 early_initcall(msm_restart_init);
