@@ -365,11 +365,11 @@ static int __init msm_restart_init(void)
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
 	pm_power_off = msm_power_off;
 
-	set_warmboot();
+#define	set_warmboot();
 #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-	__raw_writel(CONFIG_WARMBOOT_CRASH, restart_reason);
+#define	__raw_writel(CONFIG_WARMBOOT_CRASH, restart_reason);
 #else	
-	__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
+#define	__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
 #endif	
 
 #ifdef CONFIG_KEXEC_HARDBOOT
